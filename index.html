@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+		</style>
+	</head>
+	<body>
+    <script>document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>')</script>
+    <!-- <script src="three.js"></script>
+    <script src="GLTFLoader.js"></script> -->
+		<script type="module">
+      import { GLTFLoader } from './GLTFLoader.js';
+      // import * as THREE from './three.js';
+      import {
+        Scene,
+        Color,
+        CameraHelper,
+        PerspectiveCamera,
+        WebGLRenderer,
+        AmbientLight,
+        HemisphereLight,
+        HemisphereLightHelper,
+        SpotLight,
+        AnimationMixer,
+        AnimationClip,
+        ReinhardToneMapping,
+        Clock,
+      } from './three.module.js';
+
+      import { OrbitControls } from './OrbitControls.js';
+
+      const scene = new Scene();
+      scene.background = new Color(0xdddddd);
+
+      const camera = new PerspectiveCamera(20, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 0.1);
+      const cameraHelper = new CameraHelper(camera);
+      scene.add(cameraHelper);
+      scene.add(camera);
+
+      const renderer = new WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = ReinhardToneMapping;
+      renderer.toneMappingExposure = 2.3;
+      renderer.shadowMap.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      const hemisphereLight = new HemisphereLight(0xffeeb1, 0x808020, 4.0);
+      scene.add(hemisphereLight);
+
+      const ambientLight = new AmbientLight(0xffeeb1, 2.0);
+      scene.add(ambientLight);
+
+      const spotLight = new SpotLight(0xffa95c, 4.0);
+      spotLight.castShadow = true;
+      spotLight.shadow.bias = -0.0001;
+      spotLight.shadow.mapSize.width = 1024 * 4;
+      spotLight.shadow.mapSize.height = 1024 * 4;
+      scene.add(spotLight);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.update();
+
+      const loader = new GLTFLoader();
+      loader.load('ibm_Z_Anim_Processor_Reveal_v007.glb', (animatedObject) => {
+        const model = animatedObject.scene.children[0];
+        model.position.set(0, -5, -25);
+        model.traverse(n => {
+          if (n.isMesh) {
+            n.castShadow = true;
+            n.receiveShadow = true;
+            if (n.material.map) n.material.map.anisotropy = 16;
+          }
+        })
+        const mixer = new AnimationMixer(animatedObject.scene);
+        const { animations } = animatedObject;
+
+        const clock = new Clock();
+
+        // const clip = AnimationClip.findByName(animations, 'ibm_Z_Anim_Base_CVRT:z_Door_Front|Take 001|BaseLayer');
+        // const action = mixer.clipAction(clip);
+        // action.play();
+
+        animations.forEach(clip => {
+          mixer.clipAction(clip).play();
+        })
+
+        function update () {
+          const delta = clock.getDelta();
+          mixer.update( delta );
+        }
+
+        scene.add(animatedObject.scene);
+
+        function animate() {
+          renderer.render(scene, camera);
+          spotLight.position.set(
+            camera.position.x + 10,
+            camera.position.y + 10,
+            camera.position.z + 10,
+          )
+          update();
+          requestAnimationFrame(animate);
+        }
+        animate();
+      }, undefined, (err) => {
+        console.error(err);
+      });
+		</script>
+	</body>
+</html>
