@@ -12,6 +12,7 @@ import {
   HemisphereLight,
   HemisphereLightHelper,
   SpotLight,
+  SpotLightHelper,
   AnimationMixer,
   AnimationClip,
   ReinhardToneMapping,
@@ -42,119 +43,87 @@ import {
   PlaneHelper,
   Plane,
   RepeatWrapping,
+  DirectionalLight,
+  DirectionalLightHelper,
 } from '../threejs/three.module.js';
 
 const modelPath = './ibm_Z_Anim_Cloud_v003.glb';
-const button1 = '../assets/button1@3x.png';
-const button2 = '../assets/button2@3x.png';
+const floatingButtons = [
+  '../assets/button1@3x.png',
+  '../assets/button2@3x.png',
+  '../assets/button3@3x.png',
+  '../assets/button4@3x.png',
+  '../assets/button5@3x.png',
+];
+const ringPath = '../assets/whiteCircle@3x.png';
 
 async function main() {
   const clock = new Clock();
 
-  let scene, camera, renderer;
+  let scene, camera, renderer, ibmModels;
   scene = new Scene();
-  scene = await addBackground(scene);
-  // scene = addHelperAxes(scene);
-  scene = setScenePosition(scene);
-  const lightsResult = addLights(scene);
-  scene = lightsResult.scene;
-  let { spotLight } = lightsResult;
-
-  camera = initCamera({
-    fov: 25,
-    aspectRatio: window.innerWidth / window.innerHeight,
-    // min: 0.00001,
-    // max: 1,
-    min: 1,
-    max: 50,
-  });
-  scene.add(camera);
-
-  renderer = initRenderer();
-  document.body.appendChild(renderer.domElement);
-  addPmremGenerator(renderer);
-
-  const orbitControls = initOrbitControls({ camera, renderer });
-
-  let model = await loadModel();
-  model = setModelPosition(model);
-  model = addShadows(model);
-  // scene.add(model.scene);
-
-  let mixer = initMixer(model);
-
-  mixer = animate({ spotLight, camera, orbitControls, scene, clock, mixer, renderer });
-
-
-
-
-  function createMat(texture) {
-    return new MeshBasicMaterial({
-      map: texture,
-      side: DoubleSide,
-      transparent: true,
-      alphaTest: 0.1,
-    });
-  }
-  const tex1 = new TextureLoader().load(button1);
-  const tex2 = new TextureLoader().load(button2);
-  const mat1 = createMat(tex1)
-  const mat2 = createMat(tex2);
-
-  let planeGeo = new PlaneGeometry(10, 10, 1, 2);
-  console.log(planeGeo)
-
-  planeGeo.faces[0].materialIndex = 0;
-  planeGeo.faces[1].materialIndex = 0;
-  planeGeo.faces[2].materialIndex = 1;
-  planeGeo.faces[3].materialIndex = 1;
-
-  let mesh = new Mesh(planeGeo, [ mat1, mat2 ]);
-
-  scene.add(mesh);
-
-  // planeTexture.wrapS = RepeatWrapping;
-  // planeTexture.wrapT = RepeatWrapping;
-  // planeTexture.repeat.set(4, 4);
-
-  const plane = initPlane();
-
-  scene.add(plane);
-}
-
-function initPlane() {
-  const geometry = new PlaneGeometry(10, 20, 32);
-  const plane = new Mesh(geometry, material);
-  return plane;
-}
-
-main();
-
-///////////////
-// functions //
-///////////////
-async function addBackground(scene) {
+  /////////////////
+  // add background
   const textureLoader = new TextureLoader();
   const texture = await textureLoader.load('../assets/bg01.jpg');
   scene.background = texture;
-  return scene;
-}
-
-function setScenePosition(scene) {
+  ///////////////////////
+  // add xyz axes helpers
+  const axesHelper = new AxesHelper();
+  scene.add( axesHelper );
+  /////////////////////////////
+  // change main scene position
   scene.position.set(0, -0.01, 0);
-  return scene;
-}
-
-function initCamera({ fov, aspectRatio, min, max }) {
-  const camera = new PerspectiveCamera(fov, aspectRatio, min, max);
-  camera.position.set(0.3, 0, 1.5);
-  camera.aspect = aspectRatio;
+  //////////////
+  // add camera
+  camera = new PerspectiveCamera(
+    45, // fov
+    window.innerWidth / window.innerHeight, // aspectRatio
+    0.01, // min
+    1000, // max
+    );
+  camera.position.set(0.01, 0, 0.1);
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  return camera;
-}
+  scene.add(camera);
+  ////////////////
+  // camera helper
+  // const cameraHelper = new CameraHelper(camera);
+  // scene.add(cameraHelper);
+  /////////////
+  // add lights
+  // const hemisphereLight = new HemisphereLight(0xffeeb1, 0x808020, 4.0);
+  // scene.add(hemisphereLight);
+  function addDirectionLight(x, y, z) {
+    const directionalLight = new DirectionalLight(0xffffff, 5);
+    directionalLight.position.set(x, y, z);
+    scene.add(directionalLight);
+    const directionalLightHelper = new DirectionalLightHelper(directionalLight);
+    scene.add(directionalLightHelper);
+  }
+  addDirectionLight(5, 2, 3);
+  addDirectionLight(-5, 2, -3);
 
-function initRenderer() {
-  const renderer = new WebGLRenderer({ antialias: true });
+  const spotLight = new SpotLight(0xd3d3d3, 4.0);
+  spotLight.position.set(
+    5, 12, 0
+    // camera.position.x + 11,
+    // camera.position.y + 14,
+    // camera.position.z + 10,
+  )
+  spotLight.target = camera;
+  spotLight.castShadow = true;
+  spotLight.shadow.bias = -0.0001;
+  spotLight.shadow.mapSize.width = 1024 * 4;
+  spotLight.shadow.mapSize.height = 1024 * 4;
+  // scene.add(spotLight);
+  ///////////////////
+  // spotlight helper
+  // const spotLightHelper = new SpotLightHelper(spotLight);
+  // scene.add(spotLightHelper);
+  ///////////////
+  // add renderer
+  renderer = new WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
   // renderer.toneMapping = ReinhardToneMapping;
@@ -163,108 +132,177 @@ function initRenderer() {
   renderer.toneMappingExposure = 1;
   renderer.outputEncoding = sRGBEncoding;
   renderer.shadowMap.enabled = true;
-  return renderer;
-}
-
-function addPmremGenerator(renderer) {
+  document.body.appendChild(renderer.domElement);
+  /////////////////////
+  // add pmremGenerator
   const pmremGenerator = new PMREMGenerator(renderer);
   pmremGenerator.compileEquirectangularShader();
-}
-
-function addLights(scene) {
-  function addHemisphereLight() {
-    const hemisphereLight = new HemisphereLight(0xffeeb1, 0x808020, 4.0);
-    scene.add(hemisphereLight);    
-  }
-  function addAmbientLight() {
-    const ambientLight = new AmbientLight(0xffeeb1, 2.0);
-    scene.add(ambientLight);    
-  }
-  function addSpotLight() {
-    const spotLight = new SpotLight(0xffa95c, 4.0);
-    spotLight.castShadow = true;
-    spotLight.shadow.bias = -0.0001;
-    spotLight.shadow.mapSize.width = 1024 * 4;
-    spotLight.shadow.mapSize.height = 1024 * 4;
-    scene.add(spotLight);
-    return spotLight;
-  }
-  addHemisphereLight();
-  addAmbientLight();
-  const spotLight = addSpotLight();
-  return { scene, spotLight };
-}
-
-function initOrbitControls({ camera, renderer }) {
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.dampingFactor = 1.0;
-  // controls.minDistance = 0.01;
-  // controls.maxDistance = 0.1;
-  controls.minPolarAngle = Math.PI / 2;
-  controls.maxPolarAngle = Math.PI / 2;
-  // controls.enablePan = false;
-  controls.update();
-  return controls;
-}
-
-function loadModel() {
-  const loader = new GLTFLoader();
-  return new Promise((resolve, reject) => {
-    loader.load(modelPath, (model) => {
-      resolve(model);
+  /////////////////
+  // orbit controls
+  const orbitControls = new OrbitControls(camera, renderer.domElement);
+  orbitControls.dampingFactor = 1.0;
+  // orbitControls.minDistance = 0.01;
+  // orbitControls.maxDistance = 0.1;
+  orbitControls.minPolarAngle = Math.PI / 2;
+  orbitControls.maxPolarAngle = Math.PI / 2;
+  orbitControls.enablePan = false;
+  orbitControls.update();
+  /////////////
+  // load model
+  async function loadModel(position) {
+    const loader = new GLTFLoader();
+    const model = await new Promise((resolve, reject) => {
+      loader.load(modelPath, (model) => {
+        resolve(model);
+      })
     })
+    console.log(model)
+    model.scene.position.set(...position);
+    return model;
+  }
+  const model1 = await loadModel([0.003, -0.015, 0]);
+  const model2 = await loadModel([-0.0035, -0.015, 0]);
+  const model3 = await loadModel([-0.01, -0.015, 0]);
+  /////////////////////
+  // add model to scene
+  scene.add(model1.scene);
+  scene.add(model2.scene);
+  // scene.add(model3.scene);
+  ///////////////////////////////
+  // create Materials for Buttons
+  function createMat(texturePath) {
+    const texture = new TextureLoader().load(texturePath);
+    // tex.wrapS = RepeatWrapping;
+    // tex.wrapT = RepeatWrapping;
+    // tex.repeat.set(4, 4);
+    return new MeshBasicMaterial({
+      map: texture,
+      side: DoubleSide,
+      transparent: true,
+      // alphaTest: 0.1,
+    });
+  }
+  /////////////////////////////////
+  // initialize plane for Materials
+  function initPlane(mat, position, size) {
+    const [x, y, z] = position;
+    const segmentSize = 1;
+    const geometry = new PlaneGeometry(size, size, segmentSize, segmentSize);
+    const plane = new Mesh(geometry, mat);
+    plane.name = "button";
+    plane.position.set(x, y, z);
+    return plane;
+  }
+  const planes = [];
+  function initButton(button, position) {
+    const mat = createMat(button);
+    const ring = createMat(ringPath);
+
+    const buttonPlane = initPlane(mat, position, 0.005);
+    const ringPlane = initPlane(ring, position, 0.006);
+
+    planes.push(buttonPlane);
+    planes.push(ringPlane);
+    model1.scene.add(buttonPlane);
+    model1.scene.add(ringPlane);
+  }
+  initButton(floatingButtons[0], [-0.002, 0.02, 0.01]);
+  initButton(floatingButtons[1], [-0.002, 0.03, 0.01]);
+  initButton(floatingButtons[2], [0.002, 0.01, 0.01]);
+  initButton(floatingButtons[3], [0.005, 0.03, 0.01]);
+  initButton(floatingButtons[4], [0.004, 0.02, 0.01]);
+
+  //////////////////////
+  // detect button touch
+  let downPoint = {};
+  let upPoint = {};
+  renderer.domElement.addEventListener('pointerdown', event => {
+    downPoint = { x: event.clientX, y: event.clientY };
   })
-}
-
-function setModelPosition(model) {
-  model.scene.position.set(0.003, 0, 0);
-  return model;
-}
-
-function addShadows(model) {
-  model.scene.children.forEach(c => c.traverse(n => {
+  renderer.domElement.addEventListener('pointerup', event => {
+    upPoint = { x: event.clientX, y: event.clientY };
+  })
+  renderer.domElement.addEventListener('click', onMouseClick, true);
+  let raycaster = new Raycaster();
+  const mouse = new Vector2();
+  function onMouseClick(event) {
+    function isMouseDrag(down, up) {
+      return (down.x !== up.x) || (down.y !== up.y)
+    }
+    mouse.x = event.clientX / window.innerWidth * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const buttonModels = model1.scene.children.filter(c => c.name === 'button');
+    let intersects = raycaster.intersectObjects(buttonModels, true);
+    if (intersects.length && !isMouseDrag(downPoint, upPoint)) {
+      let positionInModels = buttonModels.findIndex(b => b.id === intersects[0].object.id);
+      if (positionInModels % 2 == 0) positionInModels++;
+      positionInModels++;
+      const buttonPressed = positionInModels/2;
+      console.log(`clicked on button#${buttonPressed}`)
+      if (buttonPressed === 1) {
+        removeAllButtons();
+        centerServers();
+        scene.remove(model3.scene);
+      }
+      if (buttonPressed === 4) {
+        scene.add(model3.scene);
+      }
+    }
+  }
+  /////////////////////
+  // add all buttons
+  function addAllButtons() {
+    planes.forEach(plane => {
+      model1.scene.add(plane)
+    })  
+  }
+  /////////////////////
+  // remove all buttons
+  function removeAllButtons() {
+    planes.forEach(plane => {
+      model1.scene.remove(plane)
+    })  
+  }
+  // removeAllButtons();
+  ////////////////////////////////
+  // animation to center server(s)
+  function centerServers() {
+    model1.scene.position.set(0.003, -0.015, 0);
+    orbitControls.reset();
+  }
+  //////////////////////////
+  // add shadows to ibmModel
+  model1.scene.children.forEach(c => c.traverse(n => {
     if (n.type === 'Mesh') {
       n.castShadow = true;
       n.receiveShadow = true;
       if (n.material.map) n.material.map.anisotropy = 16;
     }
   }))
-  return model;
-}
-
-function initMixer(model) {
-  const mixer = new AnimationMixer(model.scene);
-  return mixer;
-}
-
-function updateMixer({ mixer, clock }) {
+  ///////////////////
+  // initialize mixer
+  const mixer = new AnimationMixer(model1.scene);
+  //////////////
+  // render loop
   const delta = clock.getDelta();
-  mixer.update(delta);
-  return mixer;
+  function render() {
+    orbitControls.update();
+    planes.forEach(plane => {
+      plane.rotation.setFromRotationMatrix(camera.matrix);
+    })
+    mixer.update(delta);  
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+  render();
 }
 
-function animate(args) {
-  let { spotLight, camera, orbitControls, scene, clock, mixer, renderer } = args;
-  spotLight.position.set(
-    camera.position.x + 10,
-    camera.position.y + 10,
-    camera.position.z + 10,
-  )
-  mixer = updateMixer({ mixer, clock });
-  orbitControls.update();
-  requestAnimationFrame(() => animate(args));
-  renderer.render(scene, camera);
-  return mixer;
-}
+main();
 
 /////////////
 // helpers //
 /////////////
-function addHelperAxes(scene) {
-  const axesHelper = new AxesHelper();
-  scene.add( axesHelper );
-  return scene;
-}
 
 function drawRaycastLaser({ scene, raycaster }) {
   scene.add(new ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000));

@@ -1,0 +1,24 @@
+{
+  "name": "3dmodels",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/three": "^0.127.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikderagon/ibm_z_3Dmodels.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mikderagon/ibm_z_3Dmodels/issues"
+  },
+  "homepage": "https://github.com/mikderagon/ibm_z_3Dmodels#readme"
+}
