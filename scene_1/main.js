@@ -62,6 +62,7 @@ async function main() {
   const clock = new Clock();
 
   let scene, camera, renderer, ibmModels;
+  ibmModels = [];
   scene = new Scene();
   /////////////////
   // add background
@@ -71,7 +72,7 @@ async function main() {
   ///////////////////////
   // add xyz axes helpers
   const axesHelper = new AxesHelper();
-  scene.add( axesHelper );
+  // scene.add( axesHelper );
   /////////////////////////////
   // change main scene position
   scene.position.set(0, -0.005, 0);
@@ -83,7 +84,6 @@ async function main() {
     0.01, // min
     1000, // max
     );
-  // camera.position.set(0.01, 0, 0.1);
   camera.position.set(0.015, 0.001, 0.05);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -101,7 +101,7 @@ async function main() {
     directionalLight.position.set(x, y, z);
     scene.add(directionalLight);
     const directionalLightHelper = new DirectionalLightHelper(directionalLight);
-    scene.add(directionalLightHelper);
+    // scene.add(directionalLightHelper);
   }
   addDirectionLight(0.1, 1, 3);
   addDirectionLight(0.1, 1, -3);
@@ -149,8 +149,8 @@ async function main() {
   orbitControls.dampingFactor = 1.0;
   // orbitControls.minDistance = 0.01;
   // orbitControls.maxDistance = 0.1;
-  // orbitControls.minPolarAngle = Math.PI / 2;
-  // orbitControls.maxPolarAngle = Math.PI / 2;
+  orbitControls.minPolarAngle = Math.PI / 2;
+  orbitControls.maxPolarAngle = Math.PI / 2;
   orbitControls.enablePan = false;
   /////////////
   // load model
@@ -162,17 +162,20 @@ async function main() {
       })
     })
     model.scene.position.set(...position);
-    return model;
+    ibmModels.push(model);
   }
-  const initialPosition = [0.0, -0.011, 0.001];
-  const model1 = await loadModel(initialPosition);
-  const model2 = await loadModel([-0.0035, -0.015, 0]);
-  const model3 = await loadModel([-0.01, -0.015, 0]);
   /////////////////////
-  // add model to scene
-  scene.add(model1.scene);
-  // scene.add(model2.scene);
-  // scene.add(model3.scene);
+  // add models to scene
+  const initialPosition = [0.0, -0.011, 0.001];
+  await loadModel(initialPosition);
+
+  function reloadModels() {
+    ibmModels = ibmModels.slice(0, 4);
+    ibmModels.forEach(model => {
+      scene.add(model.scene);
+    })  
+  }
+  reloadModels();
   ///////////////////////////////
   // create Materials for Buttons
   function createMat(texturePath) {
@@ -190,32 +193,31 @@ async function main() {
   /////////////////////////////////
   // initialize plane for Materials
   function initPlane(mat, position, size) {
-    const [x, y, z] = position;
     const segmentSize = 1;
     const geometry = new PlaneGeometry(size, size, segmentSize, segmentSize);
     const plane = new Mesh(geometry, mat);
     plane.name = "button";
-    plane.position.set(x, y, z);
+    plane.position.set(...position);
     return plane;
   }
   const planes = [];
-  function initButton(button, position) {
+  function initButton(button, position, model) {
     const mat = createMat(button);
     const ring = createMat(ringPath);
 
-    const buttonPlane = initPlane(mat, position, 0.0022);
-    const ringPlane = initPlane(ring, position, 0.0028);
+    const buttonPlane = initPlane(mat, position, 0.0018);
+    const ringPlane = initPlane(ring, position, 0.0024);
 
     planes.push(buttonPlane);
     planes.push(ringPlane);
-    model1.scene.add(buttonPlane);
-    model1.scene.add(ringPlane);
+    model.scene.add(buttonPlane);
+    model.scene.add(ringPlane);
   }
-  initButton(floatingButtons[0], [-0.001, 0.0205, 0.01]);
-  initButton(floatingButtons[1], [-0.001, 0.015, 0.01]);
-  initButton(floatingButtons[2], [0.008, 0.015, 0.007]);
-  initButton(floatingButtons[3], [0.002, 0.01, 0.01]);
-  initButton(floatingButtons[4], [0.004, 0.02, 0.01]);
+  initButton(floatingButtons[0], [-0.001, 0.0205, 0.007], ibmModels[0]);
+  initButton(floatingButtons[1], [-0.001, 0.015, 0.007], ibmModels[0]);
+  initButton(floatingButtons[2], [0.006, 0.015, 0.007], ibmModels[0]);
+  initButton(floatingButtons[3], [0.002, 0.01, 0.007], ibmModels[0]);
+  initButton(floatingButtons[4], [0.0006, 0.0058, 0.007], ibmModels[0]);
 
   //////////////////////
   // detect button touch
@@ -230,28 +232,35 @@ async function main() {
   renderer.domElement.addEventListener('click', onMouseClick, true);
   let raycaster = new Raycaster();
   const mouse = new Vector2();
-  function onMouseClick(event) {
+  async function onMouseClick(event) {
     function isMouseDrag(down, up) {
       return (down.x !== up.x) || (down.y !== up.y)
     }
     mouse.x = event.clientX / window.innerWidth * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    const buttonModels = model1.scene.children.filter(c => c.name === 'button');
+    const buttonModels = ibmModels[0].scene.children.filter(c => c.name === 'button');
     let intersects = raycaster.intersectObjects(buttonModels, true);
     if (intersects.length && !isMouseDrag(downPoint, upPoint)) {
       let positionInModels = buttonModels.findIndex(b => b.id === intersects[0].object.id);
       if (positionInModels % 2 == 0) positionInModels++;
       positionInModels++;
       const buttonPressed = positionInModels/2;
-      console.log(`clicked on button#${buttonPressed}`)
+      // console.log(`clicked on button#${buttonPressed}`)
       if (buttonPressed === 1) {
-        removeAllButtons();
-        centerServers();
-        scene.remove(model3.scene);
+        // removeAllButtons();
+        if (ibmModels.length < 4) {
+          addServer();
+        }
       }
-      if (buttonPressed === 4) {
-        scene.add(model3.scene);
+      if (buttonPressed === 2) {
+        // removeAllButtons();
+        if (ibmModels.length > 1) {
+          removeServer();
+        }
+      }
+      if (buttonPressed === 5) {
+        removeAllButtons();
       }
     }
   }
@@ -259,35 +268,106 @@ async function main() {
   // add all buttons
   function addAllButtons() {
     planes.forEach(plane => {
-      model1.scene.add(plane)
+      ibmModels[0].scene.add(plane)
     })  
   }
   /////////////////////
   // remove all buttons
   function removeAllButtons() {
     planes.forEach(plane => {
-      model1.scene.remove(plane)
+      ibmModels[0].scene.remove(plane)
     })  
   }
   // removeAllButtons();
+  async function addServer() {
+    await loadModel([0,0,0]);
+    reloadModels();
+    centerServers();
+  }
+  function removeServer() {
+    const deletedModel = ibmModels.pop();
+    scene.remove(deletedModel.scene)
+    reloadModels();
+    centerServers();
+  }
   ////////////////////////////////
   // animation to center server(s)
   function centerServers() {
-    model1.scene.position.set(...initialPosition);
+    if (!ibmModels.length) return;
+    if (ibmModels.length === 1) {
+      ibmModels[0].scene.position.set(...initialPosition)
+    }
+    if (ibmModels.length === 2) {
+      ibmModels[0].scene.position.set(...[
+        initialPosition[0] - 0.0035,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[1].scene.position.set(...[
+        initialPosition[0] + 0.0035,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+    }
+    if (ibmModels.length === 3) {
+      ibmModels[0].scene.position.set(...[
+        initialPosition[0] - 0.007,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[1].scene.position.set(...[
+        initialPosition[0] + 0.007,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[2].scene.position.set(...[
+        initialPosition[0] + 0,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+    }
+    if (ibmModels.length === 4) {
+      ibmModels[0].scene.position.set(...[
+        initialPosition[0] - 0.0105,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[1].scene.position.set(...[
+        initialPosition[0] - 0.0035,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[2].scene.position.set(...[
+        initialPosition[0] + 0.0035,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+      ibmModels[3].scene.position.set(...[
+        initialPosition[0] + 0.0105,
+        initialPosition[1],
+        initialPosition[2],
+      ])
+    }
     orbitControls.reset();
   }
   //////////////////////////
   // add shadows to ibmModel
-  model1.scene.children.forEach(c => c.traverse(n => {
-    if (n.type === 'Mesh') {
-      n.castShadow = true;
-      n.receiveShadow = true;
-      if (n.material.map) n.material.map.anisotropy = 16;
-    }
-  }))
+  ibmModels.forEach(model => {
+    model.scene.children.forEach(c => c.traverse(n => {
+      if (n.type === 'Mesh') {
+        n.castShadow = true;
+        n.receiveShadow = true;
+        if (n.material.map) n.material.map.anisotropy = 16;
+      }
+    }))
+  });
   ///////////////////
   // initialize mixer
-  const mixer = new AnimationMixer(model1.scene);
+  let mixers = []
+  ibmModels.forEach(model => {
+    mixers.push(new AnimationMixer(model.scene))
+  })
+  // const mixer = new AnimationMixer(ibmModels[0].scene);
   //////////////
   // render loop
   const delta = clock.getDelta();
@@ -297,7 +377,8 @@ async function main() {
     planes.forEach(plane => {
       plane.rotation.setFromRotationMatrix(camera.matrix);
     })
-    mixer.update(delta);  
+    mixers.forEach(mixer => mixer.update(delta))
+    // mixer.update(delta);
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }
