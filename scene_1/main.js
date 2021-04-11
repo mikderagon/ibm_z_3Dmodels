@@ -45,6 +45,7 @@ import {
   RepeatWrapping,
   DirectionalLight,
   DirectionalLightHelper,
+  MeshLambertMaterial,
 } from '../threejs/three.module.js';
 
 const modelPath = './ibm_Z_Anim_Cloud_v003.glb';
@@ -73,7 +74,7 @@ async function main() {
   scene.add( axesHelper );
   /////////////////////////////
   // change main scene position
-  scene.position.set(0, -0.01, 0);
+  scene.position.set(0, -0.005, 0);
   //////////////
   // add camera
   camera = new PerspectiveCamera(
@@ -82,7 +83,8 @@ async function main() {
     0.01, // min
     1000, // max
     );
-  camera.position.set(0.01, 0, 0.1);
+  // camera.position.set(0.01, 0, 0.1);
+  camera.position.set(0.015, 0.001, 0.05);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   scene.add(camera);
@@ -95,14 +97,18 @@ async function main() {
   // const hemisphereLight = new HemisphereLight(0xffeeb1, 0x808020, 4.0);
   // scene.add(hemisphereLight);
   function addDirectionLight(x, y, z) {
-    const directionalLight = new DirectionalLight(0xffffff, 5);
+    const directionalLight = new DirectionalLight(0xffffff, 1.8);
     directionalLight.position.set(x, y, z);
     scene.add(directionalLight);
     const directionalLightHelper = new DirectionalLightHelper(directionalLight);
     scene.add(directionalLightHelper);
   }
+  addDirectionLight(0.1, 1, 3);
+  addDirectionLight(0.1, 1, -3);
   addDirectionLight(5, 2, 3);
+  addDirectionLight(-5, 2, 3);
   addDirectionLight(-5, 2, -3);
+  addDirectionLight(5, 2, -3);
 
   const spotLight = new SpotLight(0xd3d3d3, 4.0);
   spotLight.position.set(
@@ -143,10 +149,9 @@ async function main() {
   orbitControls.dampingFactor = 1.0;
   // orbitControls.minDistance = 0.01;
   // orbitControls.maxDistance = 0.1;
-  orbitControls.minPolarAngle = Math.PI / 2;
-  orbitControls.maxPolarAngle = Math.PI / 2;
+  // orbitControls.minPolarAngle = Math.PI / 2;
+  // orbitControls.maxPolarAngle = Math.PI / 2;
   orbitControls.enablePan = false;
-  orbitControls.update();
   /////////////
   // load model
   async function loadModel(position) {
@@ -156,17 +161,17 @@ async function main() {
         resolve(model);
       })
     })
-    console.log(model)
     model.scene.position.set(...position);
     return model;
   }
-  const model1 = await loadModel([0.003, -0.015, 0]);
+  const initialPosition = [0.0, -0.011, 0.001];
+  const model1 = await loadModel(initialPosition);
   const model2 = await loadModel([-0.0035, -0.015, 0]);
   const model3 = await loadModel([-0.01, -0.015, 0]);
   /////////////////////
   // add model to scene
   scene.add(model1.scene);
-  scene.add(model2.scene);
+  // scene.add(model2.scene);
   // scene.add(model3.scene);
   ///////////////////////////////
   // create Materials for Buttons
@@ -198,18 +203,18 @@ async function main() {
     const mat = createMat(button);
     const ring = createMat(ringPath);
 
-    const buttonPlane = initPlane(mat, position, 0.005);
-    const ringPlane = initPlane(ring, position, 0.006);
+    const buttonPlane = initPlane(mat, position, 0.0022);
+    const ringPlane = initPlane(ring, position, 0.0028);
 
     planes.push(buttonPlane);
     planes.push(ringPlane);
     model1.scene.add(buttonPlane);
     model1.scene.add(ringPlane);
   }
-  initButton(floatingButtons[0], [-0.002, 0.02, 0.01]);
-  initButton(floatingButtons[1], [-0.002, 0.03, 0.01]);
-  initButton(floatingButtons[2], [0.002, 0.01, 0.01]);
-  initButton(floatingButtons[3], [0.005, 0.03, 0.01]);
+  initButton(floatingButtons[0], [-0.001, 0.0205, 0.01]);
+  initButton(floatingButtons[1], [-0.001, 0.015, 0.01]);
+  initButton(floatingButtons[2], [0.008, 0.015, 0.007]);
+  initButton(floatingButtons[3], [0.002, 0.01, 0.01]);
   initButton(floatingButtons[4], [0.004, 0.02, 0.01]);
 
   //////////////////////
@@ -268,7 +273,7 @@ async function main() {
   ////////////////////////////////
   // animation to center server(s)
   function centerServers() {
-    model1.scene.position.set(0.003, -0.015, 0);
+    model1.scene.position.set(...initialPosition);
     orbitControls.reset();
   }
   //////////////////////////
@@ -287,7 +292,8 @@ async function main() {
   // render loop
   const delta = clock.getDelta();
   function render() {
-    orbitControls.update();
+    // orbitControls.update();
+    // camera.updateProjectionMatrix();
     planes.forEach(plane => {
       plane.rotation.setFromRotationMatrix(camera.matrix);
     })
