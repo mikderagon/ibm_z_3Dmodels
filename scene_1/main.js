@@ -170,6 +170,7 @@ async function main() {
   await loadModel(initialPosition);
 
   function reloadModels() {
+    // if (ibmModels.length > 1) removeAllButtons();
     ibmModels = ibmModels.slice(0, 4);
     ibmModels.forEach(model => {
       scene.add(model.scene);
@@ -348,7 +349,7 @@ async function main() {
         initialPosition[2],
       ])
     }
-    orbitControls.reset();
+    // orbitControls.reset();
   }
   //////////////////////////
   // add shadows to ibmModel
@@ -374,6 +375,7 @@ async function main() {
   function render() {
     // orbitControls.update();
     // camera.updateProjectionMatrix();
+    reloadModels();
     planes.forEach(plane => {
       plane.rotation.setFromRotationMatrix(camera.matrix);
     })
